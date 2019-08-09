@@ -71,9 +71,15 @@ def build_model():
 
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
-        ('clf', MultiOutputClassifier(OneVsRestClassifier(LinearSVC(max_iter=50))))
+        ('tfidf', TfidfTransformer()),
+        ('clf', MultiOutputClassifier(OneVsRestClassifier(LinearSVC())))
     ])
-    return pipeline
+    parameters =  {'tfidf__use_idf': (True, False), 
+              'clf__estimator__estimator__max_iter': [50, 100,500,1000], 
+              'clf__estimator__estimator__dual': [True, False]} 
+
+    cv = GridSearchCV(pipeline, param_grid=parameters)
+    return cv
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
