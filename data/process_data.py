@@ -1,16 +1,53 @@
+# import libraries
 import sys
-
+import pandas
+from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
-    pass
+    # load messages dataset
+    messages = pandas.read_csv(messages_filepath)
+
+    # load categories dataset
+    categories = pandas.read_csv(categories_filepath)
+
+    # merge datasets
+    df = pandas.merge(messages,categories,on='id')
+    
+    return df
 
 
 def clean_data(df):
-    pass
+
+    # create a dataframe of the 36 individual category columns
+    category_data = df.categories.str.split(';',expand=True)
+    
+    # select the first row of the categories dataframe
+    # rename the columns of `categories`
+    df[category_data.iloc[0].map(lambda x:x.split("-")[0])] = category_data
+    df.drop(['categories'],axis=1,inplace=True)
+    for column in df:
+        # set each value to be the last character of the string
+        if column in ['id' , 'message',	'original',	'genre']:
+            continue
+        df[column] = df[column].map(lambda x:x[-1])
+        
+        # convert column from string to numeric
+        df[column] = df[column].map(lambda x:int(x))
+
+    index,value=df.duplicated(subset=None, keep='first').index,df.duplicated(subset=None, keep='first').values
+    keyValue = zip(index,value)
+
+    # drop duplicates
+    row_num = [key for key,value in keyValue if value]
+
+    df.drop(row_num,inplace=True)
+
+    return df
 
 
 def save_data(df, database_filename):
-    pass  
+    engine = create_engine('sqlite:///'+database_filename)
+    df.to_sql('disaster', engine, index=False)
 
 
 def main():
